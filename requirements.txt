@@ -1,0 +1,5 @@
+paho-mqtt>=1.6
+protobuf>=4.21
+PyQt5>=5.15
+pyqtgraph>=0.13
+numpy>=1.24
