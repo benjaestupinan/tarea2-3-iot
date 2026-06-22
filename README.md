@@ -45,6 +45,38 @@ python3 gui.py
 
 Wireshark: capturar en `wlan0` con filtro `tcp.port == 1883`.
 
+## ESP32-B
+
+El firmware del suscriptor esta en `esp32/esp-sub`.
+
+Compilar:
+
+```bash
+cd esp32/esp-sub
+idf.py set-target esp32
+idf.py build
+```
+
+Subir al ESP32:
+
+```bash
+idf.py flash
+```
+
+Ver la salida por serie:
+
+```bash
+idf.py monitor
+```
+
+Tambien se puede hacer todo junto:
+
+```bash
+idf.py set-target esp32 build flash monitor
+```
+
+Para salir del monitor: `Ctrl+]`.
+
 ## Protobuf
 
 Regenerar Python:
@@ -56,8 +88,7 @@ python3 -m grpc_tools.protoc -Iproto --python_out=raspberry/proto proto/sensors.
 Regenerar C/nanopb para ESP32 cuando corresponda:
 
 ```bash
-protoc proto/sensors.proto -o sensors.pb
-nanopb_generator sensors.pb --output-dir=esp32-sub/main/proto
+nanopb_generator proto/sensors.proto --output-dir=esp32/esp-sub/main/proto
 ```
 
 ## Topicos MQTT
