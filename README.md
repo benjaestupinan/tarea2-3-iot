@@ -25,8 +25,14 @@ Instalacion en Raspberry:
 
 ```bash
 cd raspberry
-chmod +x network/install_raspberry.sh network/run_raspberry.sh
+chmod +x network/install_raspberry.sh network/restore_wifi.sh
 ./network/install_raspberry.sh
+```
+
+Para volver a usar `wlan0` como WiFi normal:
+
+```bash
+./network/restore_wifi.sh
 ```
 
 Ejecucion:

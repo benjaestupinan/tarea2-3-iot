@@ -12,7 +12,7 @@ Codigo de la Raspberry Pi para AP Wi-Fi, DHCP, broker Mosquitto, publicador MQTT
 - `network/dnsmasq.conf`: DHCP `192.168.10.100-192.168.10.150`.
 - `network/mosquitto.conf`: broker local en `192.168.10.1:1883`.
 - `network/install_raspberry.sh`: instala servicios y copia configuraciones.
-- `network/run_raspberry.sh`: reinicia servicios y muestra comandos de ejecucion.
+- `network/restore_wifi.sh`: desactiva el AP y devuelve `wlan0` a NetworkManager.
 
 ## Configuracion
 
@@ -46,12 +46,12 @@ Ejemplo:
 Ejecutar en la Raspberry:
 
 ```bash
-cd tarea2/raspberry
-chmod +x network/install_raspberry.sh network/run_raspberry.sh
+cd ~/dev/tarea2-3-iot/raspberry
+chmod +x network/install_raspberry.sh network/restore_wifi.sh
 ./network/install_raspberry.sh
 ```
 
-El script instala `hostapd`, `dnsmasq`, `mosquitto`, `wireshark` y dependencias Python. Tambien fija `wlan0` con IP `192.168.10.1/24`.
+El script instala `hostapd`, `dnsmasq`, `mosquitto`, `wireshark` y dependencias Python. Tambien fija `wlan0` con IP `192.168.10.1/24` y deja esa interfaz sin administracion de NetworkManager para que no vuelva a conectarse como cliente WiFi.
 
 Si la interfaz no es `wlan0`:
 
@@ -59,26 +59,26 @@ Si la interfaz no es `wlan0`:
 WLAN_IFACE=nombre_interfaz ./network/install_raspberry.sh
 ```
 
+Para volver a usar `wlan0` como WiFi normal:
+
+```bash
+./network/restore_wifi.sh
+```
+
 ## Ejecucion
 
 Terminal 1:
 
 ```bash
-cd tarea2/raspberry
+cd ~/dev/tarea2-3-iot/raspberry
 python3 publisher.py
 ```
 
 Terminal 2:
 
 ```bash
-cd tarea2/raspberry
+cd ~/dev/tarea2-3-iot/raspberry
 python3 gui.py
-```
-
-Para reiniciar servicios:
-
-```bash
-./network/run_raspberry.sh
 ```
 
 ## Topicos
