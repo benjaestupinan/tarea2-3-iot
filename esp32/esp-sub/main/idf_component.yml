@@ -1,2 +1,2 @@
 dependencies:
-  espressif/esp_mqtt: "*"
+  espressif/mqtt: "*"
