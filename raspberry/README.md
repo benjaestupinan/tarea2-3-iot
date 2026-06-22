@@ -46,7 +46,7 @@ Ejemplo:
 Ejecutar en la Raspberry:
 
 ```bash
-cd ~/dev/tarea2-3-iot/raspberry
+cd tarea2-3-iot/raspberry
 chmod +x network/install_raspberry.sh network/restore_wifi.sh
 ./network/install_raspberry.sh
 ```
@@ -70,14 +70,14 @@ Para volver a usar `wlan0` como WiFi normal:
 Terminal 1:
 
 ```bash
-cd ~/dev/tarea2-3-iot/raspberry
+cd tarea2-3-iot/raspberry
 python3 publisher.py
 ```
 
 Terminal 2:
 
 ```bash
-cd ~/dev/tarea2-3-iot/raspberry
+cd tarea2-3-iot/raspberry
 python3 gui.py
 ```
 
