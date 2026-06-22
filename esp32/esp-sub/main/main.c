@@ -149,7 +149,10 @@ void event_handler(void *arg, esp_event_base_t event_base, int32_t event_id,
       esp_wifi_connect();
     } else if (event_id ==
                WIFI_EVENT_STA_DISCONNECTED) { // Cuando se desconecta
-      ESP_LOGW(TAG, "Error al conectar, intento %d/%d", retries, max_retries);
+      wifi_event_sta_disconnected_t *disc =
+          (wifi_event_sta_disconnected_t *)event_data;
+      ESP_LOGW(TAG, "Error al conectar, reason=%d, intento %d/%d",
+               disc->reason, retries, max_retries);
 
       if (retries < max_retries) {
         esp_wifi_connect();
