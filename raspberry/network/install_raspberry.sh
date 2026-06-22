@@ -26,6 +26,17 @@ sudo cp "$ROOT_DIR/network/mosquitto.conf" /etc/mosquitto/conf.d/iot.conf
 sudo mkdir -p /var/log/mosquitto
 sudo chown mosquitto:mosquitto /var/log/mosquitto || true
 
+if command -v nmcli >/dev/null 2>&1; then
+  sudo mkdir -p /etc/NetworkManager/conf.d
+  sudo tee /etc/NetworkManager/conf.d/unmanaged-$WLAN_IFACE.conf >/dev/null <<EOF
+[keyfile]
+unmanaged-devices=interface-name:$WLAN_IFACE
+EOF
+  sudo nmcli dev disconnect "$WLAN_IFACE" >/dev/null 2>&1 || true
+  sudo nmcli dev set "$WLAN_IFACE" managed no >/dev/null 2>&1 || true
+  sudo systemctl restart NetworkManager >/dev/null 2>&1 || true
+fi
+
 if ! grep -q '^DAEMON_CONF="/etc/hostapd/hostapd.conf"' /etc/default/hostapd; then
   echo 'DAEMON_CONF="/etc/hostapd/hostapd.conf"' | sudo tee -a /etc/default/hostapd >/dev/null
 fi
