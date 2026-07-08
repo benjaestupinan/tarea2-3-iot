@@ -1,4 +1,4 @@
-# Raspberry - Tarea 2 Parte A
+# Raspberry - Tarea 2 Parte B
 
 Codigo de la Raspberry Pi para AP Wi-Fi, DHCP, broker Mosquitto, publicador MQTT Protobuf y GUI PyQt5.
 
@@ -99,7 +99,8 @@ Paneles incluidos:
 - `Temperatura`: ultimo valor y grafico de ultimas 30 muestras.
 - `Estado`: topico, QoS recibido, tiempo desde ultimo mensaje y contador.
 - `Configuracion`: activar/desactivar sensores y cambiar QoS 0/1/2 con botones Aplicar y Recargar.
-- `CSV`: iniciar/detener guardado en `data_log.csv`.
+
+El guardado CSV esta implementado como una pestaña adicional operativa, aunque el enunciado actualizado enumera cuatro paneles principales y pide el botón de guardado de datos.
 
 Columnas CSV:
 
@@ -127,7 +128,6 @@ Agregar las capturas al README final de la entrega o a una carpeta `docs/`:
 - Panel Temperatura.
 - Panel Estado.
 - Panel Configuracion.
-- Panel CSV.
 - Wireshark con `PUBLISH` de acelerometro y temperatura.
 
 ## Protobuf

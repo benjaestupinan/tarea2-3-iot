@@ -1,12 +1,12 @@
 # Tarea 2 IoT
 
-Sistema base para la Parte A: Raspberry Pi como AP, DHCP, broker Mosquitto, publicador MQTT con Protobuf y GUI PyQt5. El ESP32-B queda en `esp32/` para que se adapte como suscriptor MQTT con nanopb.
+Sistema para la Parte B: Raspberry Pi como AP, DHCP, broker Mosquitto, publicador MQTT con Protobuf y GUI PyQt5. El ESP32-B actúa como suscriptor MQTT con nanopb.
 
 ## Estructura
 
 - `raspberry/`: configuracion de red, publicador MQTT, GUI y Protobuf Python.
 - `proto/sensors.proto`: interfaz Protobuf fuente de verdad.
-- `esp32/`: firmware ESP32 en ESP-IDF.
+- `esp32-sub/`: firmware ESP32-B en ESP-IDF.
 - `requirements.txt`: dependencias Python para Raspberry.
 
 ## Raspberry
@@ -53,12 +53,12 @@ Wireshark: capturar en `wlan0` con filtro `tcp.port == 1883`.
 
 ## ESP32-B
 
-El firmware del suscriptor esta en `esp32/esp-sub`.
+El firmware del suscriptor esta en `esp32-sub`.
 
 Compilar:
 
 ```bash
-cd esp32/esp-sub
+cd esp32-sub
 idf.py set-target esp32
 idf.py build
 ```
@@ -94,7 +94,7 @@ python3 -m grpc_tools.protoc -Iproto --python_out=raspberry/proto proto/sensors.
 Regenerar C/nanopb para ESP32 cuando corresponda:
 
 ```bash
-nanopb_generator proto/sensors.proto --output-dir=esp32/esp-sub/main/proto
+nanopb_generator -I proto -D esp32-sub/main/proto proto/sensors.proto
 ```
 
 ## Topicos MQTT

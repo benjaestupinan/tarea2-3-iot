@@ -9,6 +9,7 @@
 #include <freertos/task.h>
 
 #include <esp_event.h>
+#include <esp_err.h>
 #include <esp_log.h>
 #include <esp_netif.h>
 #include <esp_system.h>
@@ -21,6 +22,7 @@
 
 #define WIFI_AP_SSID "IoT_Grupo07"
 #define WIFI_AP_PASS "pMo!3oN3c7Fzx$xVgkKYF"
+#define WIFI_AP_CHANNEL 6
 
 #define MQTT_BROKER_URI "mqtt://192.168.10.1:1883"
 #define TOPIC_ACCEL "iot/rpi4/accel"
@@ -36,6 +38,17 @@ SemaphoreHandle_t sem;
 static uint32_t accel_count = 0;
 static uint32_t temp_count = 0;
 static uint32_t status_count = 0;
+static TaskHandle_t wifi_scan_task_handle = NULL;
+static wifi_config_t wifi_config = {.sta = {
+                                       .ssid = WIFI_AP_SSID,
+                                       .password = WIFI_AP_PASS,
+                                       .scan_method = WIFI_ALL_CHANNEL_SCAN,
+                                       .sort_method = WIFI_CONNECT_AP_BY_SIGNAL,
+                                       .channel = WIFI_AP_CHANNEL,
+                                       .threshold.authmode = WIFI_AUTH_WPA2_PSK,
+                                       .pmf_cfg = {.capable = false,
+                                                   .required = false},
+                                   }};
 
 typedef struct {
   char *buffer;
@@ -69,6 +82,92 @@ static bool topic_matches(const esp_mqtt_event_t *event, const char *topic) {
   size_t topic_len = strlen(topic);
   return event->topic_len == topic_len &&
          strncmp(event->topic, topic, topic_len) == 0;
+}
+
+static void scan_and_connect(void) {
+  wifi_scan_config_t scan_config = {
+      .channel = 0,
+      .show_hidden = true,
+  };
+
+  esp_err_t err = esp_wifi_scan_start(&scan_config, true);
+  if (err != ESP_OK) {
+    ESP_LOGW(TAG, "No se pudo escanear WiFi: %s", esp_err_to_name(err));
+    esp_wifi_connect();
+    return;
+  }
+
+  uint16_t ap_count = 0;
+  ESP_ERROR_CHECK(esp_wifi_scan_get_ap_num(&ap_count));
+  ESP_LOGI(TAG, "Scan encontro %u AP en total", ap_count);
+
+  if (ap_count > 0) {
+    wifi_ap_record_t aps[20];
+    memset(aps, 0, sizeof(aps));
+    uint16_t listed = ap_count > 20 ? 20 : ap_count;
+    ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&listed, aps));
+
+    wifi_ap_record_t *target = NULL;
+    for (uint16_t i = 0; i < listed; i++) {
+      ESP_LOGI(TAG,
+               "AP %u: ssid=%s canal=%u rssi=%d auth=%d "
+               "bssid=%02x:%02x:%02x:%02x:%02x:%02x",
+               i + 1, aps[i].ssid, aps[i].primary, aps[i].rssi,
+               aps[i].authmode, aps[i].bssid[0], aps[i].bssid[1],
+               aps[i].bssid[2], aps[i].bssid[3], aps[i].bssid[4],
+               aps[i].bssid[5]);
+
+      if (strcmp((const char *)aps[i].ssid, WIFI_AP_SSID) == 0) {
+        target = &aps[i];
+      }
+    }
+
+    if (target == NULL) {
+      wifi_config.sta.channel = WIFI_AP_CHANNEL;
+      wifi_config.sta.bssid_set = false;
+      ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
+      ESP_LOGW(TAG, "No aparece %s en scan; intento conectar en canal %d igual",
+               WIFI_AP_SSID, WIFI_AP_CHANNEL);
+      esp_wifi_connect();
+      return;
+    }
+
+    wifi_config.sta.channel = target->primary;
+    wifi_config.sta.bssid_set = false;
+    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
+
+    ESP_LOGI(TAG,
+             "AP encontrado: ssid=%s canal=%u rssi=%d auth=%d "
+             "bssid=%02x:%02x:%02x:%02x:%02x:%02x",
+             target->ssid, target->primary, target->rssi, target->authmode,
+             target->bssid[0], target->bssid[1], target->bssid[2],
+             target->bssid[3], target->bssid[4], target->bssid[5]);
+  } else {
+    wifi_config.sta.channel = WIFI_AP_CHANNEL;
+    wifi_config.sta.bssid_set = false;
+    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
+    ESP_LOGW(TAG, "No aparece %s en scan; intento conectar en canal %d igual",
+             WIFI_AP_SSID, WIFI_AP_CHANNEL);
+  }
+
+  esp_wifi_connect();
+}
+
+static void wifi_scan_task(void *arg) {
+  (void)arg;
+
+  scan_and_connect();
+  wifi_scan_task_handle = NULL;
+  vTaskDelete(NULL);
+}
+
+static void start_wifi_scan_task(void) {
+  if (wifi_scan_task_handle != NULL) {
+    return;
+  }
+
+  xTaskCreate(wifi_scan_task, "wifi_scan_task", 8192, NULL, 5,
+              &wifi_scan_task_handle);
 }
 
 static void handle_protobuf_message(const char *topic, const uint8_t *data,
@@ -146,7 +245,7 @@ void event_handler(void *arg, esp_event_base_t event_base, int32_t event_id,
 
   if (event_base == WIFI_EVENT) {           // Solo nos importan 2 eventos
     if (event_id == WIFI_EVENT_STA_START) { // Cuando se inicializa el sistema
-      esp_wifi_connect();
+      start_wifi_scan_task();
     } else if (event_id ==
                WIFI_EVENT_STA_DISCONNECTED) { // Cuando se desconecta
       wifi_event_sta_disconnected_t *disc =
@@ -155,8 +254,8 @@ void event_handler(void *arg, esp_event_base_t event_base, int32_t event_id,
                disc->reason, retries, max_retries);
 
       if (retries < max_retries) {
-        esp_wifi_connect();
         retries++;
+        start_wifi_scan_task();
       } else {
         xSemaphoreGive(sem);
       }
@@ -222,6 +321,15 @@ void app_main() {
   wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
   ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 
+  wifi_country_t country = {
+      .cc = "CL",
+      .schan = 1,
+      .nchan = 13,
+      .max_tx_power = 20,
+      .policy = WIFI_COUNTRY_POLICY_MANUAL,
+  };
+  ESP_ERROR_CHECK(esp_wifi_set_country(&country));
+
   esp_event_handler_instance_t wifi_any_evh;
   ESP_ERROR_CHECK(esp_event_handler_instance_register(
       WIFI_EVENT, ESP_EVENT_ANY_ID, &event_handler, NULL, &wifi_any_evh));
@@ -231,13 +339,6 @@ void app_main() {
       IP_EVENT, IP_EVENT_STA_GOT_IP, &event_handler, NULL, &got_ip_evh));
 
   ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
-  wifi_config_t wifi_config = {.sta = {
-                                  .ssid = WIFI_AP_SSID,
-                                  .password = WIFI_AP_PASS,
-                                  .threshold.authmode = WIFI_AUTH_WPA2_PSK,
-                                  .sae_pwe_h2e = WPA3_SAE_PWE_BOTH,
-                                  .sae_h2e_identifier = "",
-                              }};
   ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
 
   ESP_ERROR_CHECK(esp_wifi_start());
