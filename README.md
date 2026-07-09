@@ -1,6 +1,6 @@
 # Tarea 2 IoT
 
-Sistema para la Parte B: Raspberry Pi como AP, DHCP, broker Mosquitto, publicador MQTT con Protobuf y GUI PyQt5. El ESP32-B actúa como suscriptor MQTT con nanopb.
+Sistema para la Parte B: Raspberry Pi como AP en `uap0`, DHCP, broker Mosquitto, publicador MQTT con Protobuf y GUI PyQt5. El ESP32-B actua como suscriptor MQTT con nanopb.
 
 ## Estructura
 
@@ -29,11 +29,13 @@ chmod +x network/install_raspberry.sh network/restore_wifi.sh
 ./network/install_raspberry.sh
 ```
 
-Para volver a usar `wlan0` como WiFi normal:
+Para bajar el AP `uap0` y dejar `wlan0` como WiFi normal:
 
 ```bash
 ./network/restore_wifi.sh
 ```
+
+El instalador crea la interfaz AP `uap0` sobre `wlan0`. La red del ESP32 se anuncia por `uap0` con IP `192.168.10.1/24`; `wlan0` queda disponible para mantener Internet/SSH en la Raspberry.
 
 Ejecucion:
 
@@ -49,7 +51,7 @@ cd raspberry
 python3 gui.py
 ```
 
-Wireshark: capturar en `wlan0` con filtro `tcp.port == 1883`.
+Wireshark: capturar en `uap0` con filtro `tcp.port == 1883`.
 
 ## ESP32-B
 

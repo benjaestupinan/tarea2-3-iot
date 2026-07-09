@@ -1,6 +1,6 @@
 # Raspberry - Tarea 2 Parte B
 
-Codigo de la Raspberry Pi para AP Wi-Fi, DHCP, broker Mosquitto, publicador MQTT Protobuf y GUI PyQt5.
+Codigo de la Raspberry Pi para AP Wi-Fi en `uap0`, DHCP, broker Mosquitto, publicador MQTT Protobuf y GUI PyQt5.
 
 ## Archivos
 
@@ -8,11 +8,11 @@ Codigo de la Raspberry Pi para AP Wi-Fi, DHCP, broker Mosquitto, publicador MQTT
 - `publisher.py`: simula acelerometro y temperatura, publica Protobuf por MQTT y heartbeat JSON.
 - `gui.py`: paneles de acelerometro, temperatura, estado, configuracion y guardado CSV.
 - `proto/sensors_pb2.py`: modulo Python Protobuf para `SensorEnvelope`.
-- `network/hostapd.conf`: base de configuracion AP 2.4 GHz canal 6.
-- `network/dnsmasq.conf`: DHCP `192.168.10.100-192.168.10.150`.
+- `network/hostapd.conf`: base de configuracion AP 2.4 GHz canal 6. El instalador cambia la interfaz a `uap0`.
+- `network/dnsmasq.conf`: DHCP `192.168.10.100-192.168.10.150`. El instalador cambia la interfaz a `uap0`.
 - `network/mosquitto.conf`: broker local en `192.168.10.1:1883`.
 - `network/install_raspberry.sh`: instala servicios y copia configuraciones.
-- `network/restore_wifi.sh`: desactiva el AP y devuelve `wlan0` a NetworkManager.
+- `network/restore_wifi.sh`: desactiva `uap0` y mantiene `wlan0` administrado por NetworkManager.
 
 ## Configuracion
 
@@ -51,15 +51,21 @@ chmod +x network/install_raspberry.sh network/restore_wifi.sh
 ./network/install_raspberry.sh
 ```
 
-El script instala `hostapd`, `dnsmasq`, `mosquitto`, `wireshark` y dependencias Python. Tambien fija `wlan0` con IP `192.168.10.1/24` y deja esa interfaz sin administracion de NetworkManager para que no vuelva a conectarse como cliente WiFi.
+El script instala `hostapd`, `dnsmasq`, `mosquitto`, `wireshark` y dependencias Python. Tambien crea la interfaz AP `uap0`, la fija con IP `192.168.10.1/24` y deja solo `uap0` sin administracion de NetworkManager. `wlan0` queda como WiFi normal para Internet/SSH.
 
-Si la interfaz no es `wlan0`:
+Si la interfaz fisica WiFi no es `wlan0`:
 
 ```bash
 WLAN_IFACE=nombre_interfaz ./network/install_raspberry.sh
 ```
 
-Para volver a usar `wlan0` como WiFi normal:
+Si se quiere otro nombre para la interfaz AP:
+
+```bash
+AP_IFACE=nombre_ap ./network/install_raspberry.sh
+```
+
+Para bajar el AP `uap0` y dejar `wlan0` como WiFi normal:
 
 ```bash
 ./network/restore_wifi.sh
@@ -110,7 +116,7 @@ timestamp_ms,source,topic,qos,ax,ay,az,temperature
 
 ## Wireshark
 
-Abrir Wireshark en la Raspberry sobre la interfaz AP, normalmente `wlan0`.
+Abrir Wireshark en la Raspberry sobre la interfaz AP `uap0`.
 
 Filtro pedido:
 
